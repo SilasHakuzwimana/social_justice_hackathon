@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Civic Accountability Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        h1, h2, h3 {
+            color: #0a58ca;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+        }
+
+        /* Navbar Styles */
+        nav {
+            background-color: #0a58ca;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        nav ul li {
+            margin-left: 20px;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+
+        nav ul li a:hover {
+            color: #f0f0f0;
+        }
+
+        /* Chart Styles */
+        .chart-container {
+            width: 100%;
+            padding: 20px;
+            margin-bottom: 20px; /* Ensure space between chart and table */
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto; /* Enable horizontal scroll for smaller screens */
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            min-width: 900px; /* Ensures table columns are not squished */
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #0a58ca;
+            color: white;
+        }
+
+        td select, td button {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            background-color: #f0f2f5;
+        }
+
+        td button {
+            background-color: #2d7fc3;
+            color: white;
+        }
+
+        td select:hover, td button:hover {
+            border-color: #007bff;
+        }
+
+        /* Form Styles */
+        form {
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            outline: none;
+        }
+
+        /* Button Styles */
+        button {
+            padding: 10px 15px;
+            background-color: #0a58ca;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #004799;
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+
+            table {
+                min-width: 100%;
+            }
+        }
+        .legend {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #000; /* Optional: border around color boxes */
+        }
+        
+        .citizen {
+            background-color: #5436EBFF; /* Citizen color */
+        }
+        
+        .admin {
+            background-color:#290FA8FF; /* Admin color */
+        }
+        
+        .official {
+            background-color: #ff6384;; /* Official color */
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav>
+        <ul>
+            <li><a href="#dashboard">Dashboard</a></li>
+            <li><a href="#create-user">Create User</a></li>
+            <li><a href="#manage-users">Manage Users</a></li>
+            <li><a href="#logout">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Admin Dashboard</h1>
+
+        <div class="dashboard">
+            <!-- User Role Chart Section -->
+            <div class="card" id="dashboard">
+                <div id="chart-container">
+                    <h2>User Role Distribution</h2>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <span class="color-box citizen"></span>
+                            <span>Citizen</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="color-box official"></span>
+                            <span>Official</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="color-box admin"></span>
+                            <span>Admin</span>
+                        </div>
+                    </div>
+                    <canvas id="userRoleChart"></canvas>
+                </div>
+                </div>
+            </div>
+
+            <!-- User Management Section -->
+            <div class="card" id="manage-users">
+                <h2>Manage Users</h2>
+                <br>
+                <!-- Create User Form -->
+                <h3 id="create-user">Create New User</h3>
+                <form id="create-user-form">
+                    <input type="text" id="fullName" name="fullName" placeholder="Full Name" required>
+                    <input type="email" id="new_user_email" name="new_user_email" placeholder="Enter new user email" required>
+                    <input type="text" id="nationalId" name="nationalId" placeholder="National ID or Passport ID" maxlength="16">
+                    <input type="text" id="location" name="location" placeholder="Location" required>
+                    <input type="tel" id="phone" name="phone" placeholder="Phone Number" maxlength="15">
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                    <select id="new_user_role" name="new_user_role">
+                        <option value="citizen">Citizen</option>
+                        <option value="official">Official</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit">Create User</button>
+                </form>
+
+                <!-- User Table -->
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>S/N</th>
+                                <th>Names</th>
+                                <th>Email</th>
+                                <th>Current Role</th>
+                                <th>New Role</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-table">
+                            <!-- Dynamic user data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function loadUserTable() {
+            fetch('/users')
+                .then(response => response.json())
+                .then(users => {
+                    const userTable = document.getElementById('user-table');
+                    userTable.innerHTML = ''; // Clear existing rows
+
+                    users.forEach((user, index) => {
+                        userTable.innerHTML += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td>${user.full_name}</td>
+                                <td>${user.email}</td>
+                                <td>${user.role}</td>
+                                <td>
+                                    <select id="new-role-${index}">
+                                        <option value="citizen" ${user.role === 'citizen' ? 'selected' : ''}>Citizen</option>
+                                        <option value="official" ${user.role === 'official' ? 'selected' : ''}>Official</option>
+                                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <button onclick="updateRole(${index}, '${user.email}')">Update Role</button>
+                                    <button onclick="deleteUser('${user.email}')">Delete</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching users:', error);
+                });
+        }
+        function loadChart(users) {
+            const roleCounts = users.reduce((counts, user) => {
+                counts[user.role] = (counts[user.role] || 0) + 1;
+                return counts;
+            }, {});
+        
+            const ctx = document.getElementById('userRoleChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(roleCounts),
+                    datasets: [{
+                        data: Object.values(roleCounts),
+                        backgroundColor: ['#5436EBFF', '#ff6384','#290FA8FF'],
+                    }]
+                }
+            });
+        }
+
+        // Load the data for the first time
+        fetch('/users')
+            .then(response => response.json())
+            .then(users => {
+                loadUserTable(users); // Load table data
+                loadChart(users); // Load chart data
+            })
+            .catch(error => {
+                console.error('Error fetching users:', error);
+            });
+       // Update role
+            function updateRole(index) {
+                // Get the user email from the table
+                const userEmail = document.querySelectorAll('#user-table tr')[index].children[2].innerText; // Index 2 for email
+                const newRole = document.getElementById(`new-role-${index}`).value;
+
+                console.log('Updating role for email:', userEmail, 'to:', newRole);
+            
+                // Make the API call to update the user role
+                fetch(`/users/${userEmail}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role: newRole })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                    // Optionally, refresh the table after the update
+                    loadUserTable(); // Reload the user table to reflect changes
+                })
+                .catch(error => {
+                    console.error('Error updating role:', error);
+                });
+            }
+
+            // Delete user
+            function deleteUser(email) {
+                fetch(`/users/${email}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            alert(`${email} has been deleted.`);
+                            loadUserTable(); // Reload users after deletion
+                        } else {
+                            alert(data.error || 'An error occurred.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting user:', error);
+                    });
+            }
+    </script>
+    <script>
+        document.getElementById("create-user-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            const fullName = document.getElementById("fullName").value.trim();
+            const new_user_email = document.getElementById("new_user_email").value.trim();
+            const nationalId = document.getElementById("nationalId").value.trim();
+            const location = document.getElementById("location").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const new_user_role = document.getElementById("new_user_role").value.trim();
+
+            if (!fullName || !new_user_email || !location || !password || !new_user_role) {
+                alert("Please fill in all required fields.");
+                return;
+            }
+        
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(new_user_email)) {
+                alert("Please enter a valid email address.");
+                return;
+            }
+        
+            const phonePattern = /^\+?[0-9]{10,15}$/;
+            if (phone && !phonePattern.test(phone)) {
+                alert("Please enter a valid phone number.");
+                return;
+            }
+        
+            const userInputData = { fullName, new_user_email, nationalId, location, phone, password, new_user_role };
+            console.log(userInputData);
+        
+            fetch('/register-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userInputData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message) {
+                    alert(data.message);
+                    document.getElementById("create-user-form").reset();
+                } else if (data.errors || data.error) {
+                    alert(data.error || data.errors.map(err => err.msg).join(', '));
+                } else {
+                    alert("Registration failed. Please try again.");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("An error occurred. Please try again.");
+            });
+        });
+    </script>
+</body>
+
+</html>
