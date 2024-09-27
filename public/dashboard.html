@@ -202,13 +202,12 @@
 </head>
 
 <body>
-    <!-- Navigation Bar -->
     <nav>
         <ul>
             <li><a href="#dashboard">Dashboard</a></li>
             <li><a href="#create-user">Create User</a></li>
             <li><a href="#manage-users">Manage Users</a></li>
-            <li><a href="#logout">Logout</a></li>
+            <li><a href="#" id="logoutLink">Logout</a></li>
         </ul>
     </nav>
 
@@ -448,6 +447,35 @@
                 alert("An error occurred. Please try again.");
             });
         });
+    </script>
+    <script>
+        document.getElementById('logoutLink').addEventListener('click', async () => {
+            try {
+              const response = await fetch('/logout', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
+          
+              const result = await response.json();
+          
+              if (response.ok) {
+                // Display the logout message (optional)
+                alert(result.message);
+          
+                // Redirect to the login page
+                window.location.href = result.redirect;
+              } else {
+                // Handle error case
+                alert(result.error || 'Logout failed');
+              }
+            } catch (error) {
+              console.error('Error during logout:', error);
+              alert('An error occurred during logout. Please try again.');
+            }
+          });
+
     </script>
 </body>
 

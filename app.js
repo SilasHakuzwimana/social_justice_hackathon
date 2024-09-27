@@ -1,6 +1,6 @@
 const express = require('express');
 const session = require('express-session');
-const dotenv = require('dotenv').config();
+const dotenv = require('dotenv')
 const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
@@ -8,8 +8,11 @@ const router = express.Router();
 const cors = require('cors');
 const crypto = require('crypto');
 const moment = require('moment-timezone');
-const userRoutes = require('./routes/userRoutes');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { body, validationResult } = require('express-validator');
+require('dotenv').config();
 const app = express();
 
 // Set default timezone to EAT (East Africa Time)
@@ -26,8 +29,6 @@ app.use(session({
   cookie: { secure: false }  // Set `secure: true` in production with HTTPS
 }));
 
-app.use('/api', userRoutes);
-
 //get all static files
 app.use(express.static('public'));
 app.get('/index',(req,res) => {
@@ -38,6 +39,12 @@ app.get('/contact', (req, res) =>{
 })
 app.get('/register', (req,res) =>{
   res.sendFile(__dirname + '/public/register.html');
+})
+app.get('/privacy-policy', (req,res) =>{
+  res.sendFile(__dirname + '/public/privacy_policy.html');
+})
+app.get('/terms-conditions', (req,res) =>{
+  res.sendFile(__dirname + '/public/terms_and_conditions.html');
 })
 app.get('/trainings', (req, res) =>{
   res.sendFile(__dirname + '/public/training.html');
@@ -214,15 +221,20 @@ function sendOTPEmail(toEmail, otp) {
     const userName = results.length > 0 ? results[0].full_name : 'User';
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: process.env.EMAIL_PORT,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER, // Use environment variable for email
-        pass: process.env.EMAIL_PASS  // Use environment variable for password
-      }
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: `${process.env.WEBSITE_NAME} <${process.env.EMAIL_USER}>`,
       to: toEmail,
       subject: 'Civic Accountability Platform Account OTP',
       html: `<!DOCTYPE html>
@@ -299,6 +311,7 @@ function sendOTPEmail(toEmail, otp) {
               }
               .footer p {
                   margin: 5px 0;
+                  text-align:center;
               }
               .footer a {
                   color: #0a58ca;
@@ -324,6 +337,10 @@ function sendOTPEmail(toEmail, otp) {
                   <p>If you have any questions or need assistance, please <a href="#">contact our support team</a>.</p>
                   <p>Thank you for using our service!</p>
               </div>
+              <footer>
+            <p>&copy; ${new Date().getFullYear()} Civic Accountability Platform. All rights reserved.</p>
+             <p><a href="localhost:3000/privacy-policy" style="color: #999;">Privacy Policy</a>|<a href="localhost:3000/terms-conditions">Terms and Conditions</a></p>
+          </footer>
           </div>
       </body>
       </html>`
@@ -339,54 +356,102 @@ function sendOTPEmail(toEmail, otp) {
   });
 }
 
-//login route
 app.post('/login', async (req, res) => {
+  const loginTime = moment.tz("Africa/Kigali").format('YYYY-MM-DD HH:mm:ss');
+  const messageTime = moment.tz("Africa/Kigali").format('YYYY-MM-DD HH:mm:ss');
+
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
+    const message = 'Email and password are required';
+    const status = `failure`; // Correct enum value
+
+    // Log the failed login attempt (no user ID since email is missing)
+    const logFailedSql = `
+      INSERT INTO login_logs (email, status, login_time, message, message_time)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    await db.promise().query(logFailedSql, [email, status, loginTime, message, messageTime]);
+
+    return res.status(400).json({ error: message });
   }
 
   try {
-    // Check if the email exists in the database
     const sql = 'SELECT * FROM users WHERE email = ?';
     const [result] = await db.promise().query(sql, [email]);
 
     if (result.length === 0) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      const message = 'Invalid email or password';
+      const status = `failure`; // Correct enum value
+
+      // Log the failed login attempt (user not found)
+      const logFailedSql = `
+        INSERT INTO login_logs (email, status, login_time, message, message_time)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      await db.promise().query(logFailedSql, [email, status, loginTime, message, messageTime]);
+
+      return res.status(400).json({ error: message });
     }
 
     const user = result[0];
-
-    // Check if password exists in the database
-    if (!user.password_hash) {
-      return res.status(500).json({ error: 'Password not found in the database' });
-    }
+    const userId = user.id;
 
     // Check if password matches the hash
     const passwordMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!passwordMatch) {
-      return res.status(400).json({ error: 'Invalid email or password' });
+      const message = 'Invalid email or password';
+      const status = `failure`; // Correct enum value
+
+      // Log the failed login attempt with user_id
+      const logFailedSql = `
+        INSERT INTO login_logs (user_id, email, status, login_time, message, message_time)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      await db.promise().query(logFailedSql, [userId, email, status, loginTime, message, messageTime]);
+
+      return res.status(400).json({ error: message });
     }
 
-    req.session.loggedEmail = email;
-
-    // Generate OTP
+    // Login successful
     const otp = generateOTP();
-
     const otpExpirationTime = moment.tz("Africa/Kigali").add(10, 'minutes').format('YYYY-MM-DD HH:mm:ss');
+    const status = `success`; // Correct enum value
+
+    // Update OTP and log success
     const updateSql = 'UPDATE users SET otp = ?, otp_expires = ? WHERE email = ?';
     await db.promise().query(updateSql, [otp, otpExpirationTime, email]);
+
+    const logSuccessSql = `
+      INSERT INTO login_logs (user_id, email, status, otp, login_time, message, message_time)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const message = 'Login successful! OTP sent to your email.';
+    const [logResult] = await db.promise().query(logSuccessSql, [userId, email, status, otp, loginTime, message, messageTime]);
+
+    req.session.loggedEmail = email;
+    req.session.userId = user.id;
+    req.session.logId = logResult.insertId; // Store logId for logout tracking
 
     // Send OTP email
     sendOTPEmail(email, otp);
 
-    return res.status(200).json({ message: 'Login successful! OTP sent to your email.' });
+    return res.status(200).json({ message });
 
   } catch (error) {
+    const message = 'Internal server error';
+    const status = `failure`; // Correct enum value
+
+    // Log the error in login logs
+    const logErrorSql = `
+      INSERT INTO login_logs (email, status, login_time, message, message_time)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    await db.promise().query(logErrorSql, [email, status, loginTime, message, messageTime]);
+
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: message });
   }
 });
 
@@ -411,7 +476,10 @@ app.post('/verify-otp', async (req, res) => {
 
       const userData = users[0];
 
-      // Check if OTP matches and has not expired
+    // Set session variables after successful login
+    req.session.loggedEmail = users[0].email;
+    req.session.userId = users[0].id;
+
       // Ensure to compare OTP properly (consider hashing if applicable)
       const isOtpValid = userData.otp === otp && new Date(userData.otp_expires) > new Date();
 
@@ -446,13 +514,111 @@ app.post('/verify-otp', async (req, res) => {
   }
 });
 
+app.post('/logout', async (req, res) => {
+  try {
+    const email = req.session.loggedEmail; // Get the logged-in email from the session
+    const userId = req.session.userId; // Get the user ID from the session
+    const logId = req.session.logId; // Get the login log ID from the session
+
+    console.log(`Attempting to logout user with email: ${email}, ID: ${userId}, and logId: ${logId}`);
+
+    // Check if session data exists
+    if (!email || !logId || !userId) {
+      return res.status(400).json({ error: 'No active login session found.' });
+    }
+
+    const logoutTime = moment.tz("Africa/Kigali").format('YYYY-MM-DD HH:mm:ss');
+
+    // Fetch the login time from the database using logId
+    const [logResult] = await db.promise().query(
+      'SELECT login_time FROM login_logs WHERE id = ?',
+      [logId]
+    );
+
+    if (logResult.length === 0) {
+      console.log('No login log found for logId:', logId);
+      return res.status(404).json({ error: 'Login log not found.' });
+    }
+
+    const loginTimeFromDB = logResult[0].login_time;
+
+    // Calculate time spent in seconds between login and logout
+    const timeSpent = moment(logoutTime).diff(moment(loginTimeFromDB), 'seconds');
+
+    // Update the login log with logout details
+    const updateLogSql = `
+      UPDATE login_logs
+      SET logout_time = ?, time_spent = ?, message = ?
+      WHERE id = ?
+    `;
+    await db.promise().query(updateLogSql, [logoutTime, timeSpent, 'User logged out successfully.', logId]);
+
+    // Destroy session
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Session destruction error:', err);
+        return res.status(500).json({ error: 'Failed to destroy session during logout.' });
+      }
+      console.log(`User with email ${email} logged out successfully.`);
+      // Send a JSON response with the message (client will handle the redirect)
+      return res.status(200).json({ message: 'Logout successful', redirect: '/login' });
+    });
+
+  } catch (error) {
+    console.error('Logout error:', error);
+    return res.status(500).json({ error: 'Internal server error during logout.' });
+  }
+});
 
 //error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack); // Log the error stack for debugging
+  console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Set up file storage using multer
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage });
+
+// POST route to handle form submission
+app.post('/citizen-contact', upload.single('file'), async (req, res) => {
+  const { name, nationalId,email,tel, description } = req.body;
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ error: 'File upload is required.' });
+  }
+
+  try {
+    const filePath = path.join('uploads', file.filename);
+
+    // Insert form data into the database
+    const insertSql = `
+      INSERT INTO contact_messages (fullName, national_id, email, tel, description, file_path)
+      VALUES (?, ?, ?, ?)
+    `;
+    await db.promise().query(insertSql, [name,nationalId ,email, tel, description, filePath]);
+
+    res.status(200).json({ message: 'Your message has been submitted successfully.' });
+
+  } catch (error) {
+    console.error('Error saving contact message:', error);
+    res.status(500).json({ error: 'An error occurred while submitting the form.' });
+  }
+});
 
 app.post('/forgot-password', async (req, res) => {
   const { email } = req.body;
@@ -476,12 +642,13 @@ app.post('/forgot-password', async (req, res) => {
     const updateSql = 'UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE email = ?';
     await db.promise().query(updateSql, [resetToken, tokenExpiration, email]);
 
-    // Store email and token in session
+   // Store email and token in session
     req.session.resetEmail = email;
     req.session.resetToken = resetToken;
 
-    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`;
-    // Send email with resetUrl (implementation not shown here)
+    // Send email with reset link
+    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+    sendResetPasswordEmail(user.full_name, email, resetUrl);
 
     return res.status(200).json({ message: 'Reset token sent to your email.' });
   } catch (error) {
@@ -490,21 +657,25 @@ app.post('/forgot-password', async (req, res) => {
   }
 });
 
-
 // Function to send reset password email with HTML/CSS
 function sendResetPasswordEmail(fullName, toEmail, resetUrl) {
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: process.env.EMAIL_PORT,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
+      pass: process.env.EMAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
   });
 
   const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: toEmail,
-    subject: 'Reset Your Password',
+    from: `${process.env.WEBSITE_NAME} <${process.env.EMAIL_USER}>`, // Sender address
+    to: toEmail, // Recipient's email
+    subject: 'Reset Your Password', // Email subject
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eaeaea; border-radius: 10px; padding: 20px; background-color: #f9f9f9;">
         <h2 style="color: #333;">Hello ${fullName},</h2>
@@ -512,11 +683,11 @@ function sendResetPasswordEmail(fullName, toEmail, resetUrl) {
         <a href="${resetUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
         <p style="color: #555; margin-top: 20px;">If the button above doesn't work, copy and paste the following link into your browser:</p>
         <p style="color: #555;"><a href="${resetUrl}" style="color: #4CAF50;">${resetUrl}</a></p>
-        <p style="color: #999; font-size: 12px;">This link will expire in one hour. If you did not request this reset, please ignore this email.</p>
+        <p style="color: #999; font-size: 12px;">This link will expire in 30 minutes. If you did not request this reset, please ignore this email.</p>
         <hr style="border: 0; border-top: 1px solid #eee;">
         <footer style="color: #999; font-size: 12px; text-align: center;">
-          <p>&copy; ${new Date().getFullYear()} Your Company. All rights reserved.</p>
-          <p><a href="https://civicaccounatbilityplatform.com/privacy-policy" style="color: #999;">Privacy Policy</a></p>
+          <p>&copy; ${new Date().getFullYear()} Civic Accountability Platform. All rights reserved.</p>
+          <p><a href="localhost:3000/privacy-policy" style="color: #999;">Privacy Policy</a>|<a href="localhost:3000/terms-conditions">Terms and Conditions</a></p>
         </footer>
       </div>
     `
@@ -530,39 +701,54 @@ function sendResetPasswordEmail(fullName, toEmail, resetUrl) {
     }
   });
 }
-app.post('/reset-password', async (req, res) => {
-  const {newPassword } = req.body;
-  // Retrieve email and token from session
-  const email = req.session.resetEmail;  // Ensure this is set before this route is accessed
-  const token = req.session.resetToken;   // Ensure this is set before this route is accessed
 
-  const currentEATTime = moment.tz("Africa/Kigali").format('YYYY-MM-DD HH:mm:ss');
-  if (!email || !token || !newPassword || token.length<10) {
-      return res.status(400).json({ error: 'Invalid request or session expired' });
+app.post('/reset-password', async (req, res) => {
+  const { email, token, newPassword } = req.body;
+  // Validate inputs
+  if (!email || !token || !newPassword) {
+    return res.status(400).json({ error: 'Invalid request or session expired' });
   }
 
   try {
-      const sql = `SELECT * FROM users WHERE email = ? AND reset_token = ? AND reset_token_expires > Now()`;
-      const [result] = await db.promise().query(sql, [email, token]);
+    // Get the current time in Africa/Kigali timezone
+    const currentTime = moment.tz("Africa/Kigali").format('YYYY-MM-DD HH:mm:ss');
+    console.log(currentTime);
 
-      if (result.length === 0) {
-          return res.status(400).json({ error: 'Invalid or expired token' });
-      }
+    // Check if the token is valid and not expired
+    const sql = `
+      SELECT *
+      FROM users
+      WHERE email = ?
+      AND reset_token = ?
+      AND reset_token_expires > ?
+    `;
+    const [result] = await db.promise().query(sql, [email, token, currentTime]);
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // If no result found, the token is either invalid or expired
+    if (result.length === 0) {
+      return res.status(400).json({ error: 'Invalid or expired token' });
+    }
 
-      const updateSql = 'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL WHERE email = ?';
-      await db.promise().query(updateSql, [hashedPassword, email]);
+    // Token is valid, proceed with password reset
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-      // Clear session data after successful password reset
-      req.session.resetEmail = null;
-      req.session.resetToken = null;
+    // Update the user's password and clear the reset token
+    const updateSql = `
+      UPDATE users
+      SET password_hash = ?, reset_token = NULL, reset_token_expires = NULL 
+      WHERE email = ?
+    `;
+    await db.promise().query(updateSql, [hashedPassword, email]);
 
-      return res.status(200).json({ message: 'Password has been reset successfully!' });
+    // Clear session data after successful password reset
+    req.session.resetEmail = null;
+    req.session.resetToken = null;
+
+    return res.status(200).json({ message: 'Password has been reset successfully!' });
 
   } catch (error) {
-      console.error('Reset password error:', error);
-      return res.status(500).json({ error: 'Internal server error' });
+    console.error('Reset password error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Contact Form</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    input[type="file"] {
+      margin-bottom: 20px;
+    }
+    button {
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .response-message {
+      margin-top: 20px;
+      text-align: center;
+      color: green;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>Contact Us</h2>
+  <form id="contactForm" enctype="multipart/form-data">
+    <label for="name">Enter Your Valid Full Names</label>
+    <input type="text" id="name" name="name" required>
+
+    <label for="nationalId">Enter Your Valid National ID Number</label>
+    <input type="number" id="nationalId" name="nationalId" maxlength="16" required>
+
+    <label for="email">Enter Your Valid Email</label>
+    <input type="email" id="email" name="email" required>
+
+    <label for="tel">Enter Your Valid Phone Number</label>
+    <input type="tel" id="tel" name="tel" required>
+
+    <label for="description">Enter Description</label>
+    <textarea id="description" name="description" rows="5" required></textarea>
+
+    <label for="file">Upload File</label>
+    <input type="file" id="file" name="file">
+
+    <button type="submit">Submit</button>
+  </form>
+  <div class="response-message" id="responseMessage"></div>
+</div>
+
+<script>
+  const form = document.getElementById('contactForm');
+  const responseMessage = document.getElementById('responseMessage');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    
+    try {
+      const response = await fetch('/citizen-contact', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        responseMessage.innerText = result.message;
+        form.reset();
+      } else {
+        responseMessage.innerText = result.error;
+      }
+    } catch (error) {
+      responseMessage.innerText = 'Error submitting the form. Please try again.';
+    }
+  });
+</script>
+
+</body>
+</html>
