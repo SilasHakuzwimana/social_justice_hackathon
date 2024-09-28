@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Feedback</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        label { display: block; margin: 10px 0 5px; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Submit Feedback</h2>
+        <form id="feedbackForm">
+            <label for="issue">Select Issue/Policy</label>
+            <select id="issue" required>
+                <option value="">--Select an Issue--</option>
+                <option value="Policy A">Policy A</option>
+                <option value="Policy B">Policy B</option>
+            </select>
+
+            <label for="comment">Your Feedback</label>
+            <textarea id="comment" required></textarea>
+
+            <button type="submit">Submit Feedback</button>
+        </form>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('feedbackForm');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const issue = document.getElementById('issue').value;
+            const comment = document.getElementById('comment').value;
+
+            try {
+                const response = await fetch('/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ issue, comment })
+                });
+
+                const result = await response.json();
+                document.getElementById('responseMessage').innerText = result.message;
+
+                if (response.ok) {
+                    form.reset();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

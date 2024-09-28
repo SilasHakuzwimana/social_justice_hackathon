@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Poll</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        label { display: block; margin: 10px 0 5px; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; }
+        .options { margin-bottom: 20px; }
+        .option { display: flex; align-items: center; margin-bottom: 10px; }
+        .option input { flex: 1; }
+        .remove-option { background: red; color: white; border: none; padding: 5px 10px; margin-left: 10px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Create Poll</h2>
+        <form id="createPollForm">
+            <label for="title">Poll Title</label>
+            <input type="text" id="title" required>
+            
+            <label for="question">Poll Question</label>
+            <textarea id="question" required></textarea>
+            
+            <label>Poll Options</label>
+            <div id="optionsContainer" class="options">
+                <div class="option">
+                    <input type="text" class="option-input" placeholder="Option 1" required>
+                    <button type="button" class="remove-option" onclick="removeOption(this)">Remove</button>
+                </div>
+            </div>
+            <button type="button" onclick="addOption()">Add Option</button>
+            <br><br>
+            <button type="submit">Create Poll</button>
+        </form>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('createPollForm');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const question = document.getElementById('question').value;
+            const options = Array.from(document.querySelectorAll('.option-input')).map(input => input.value);
+
+            const pollData = { title, question, options };
+
+            try {
+                const response = await fetch('/polls', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(pollData)
+                });
+
+                const result = await response.json();
+                document.getElementById('responseMessage').innerText = result.message;
+
+                if (response.ok) {
+                    form.reset();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        function addOption() {
+            const optionsContainer = document.getElementById('optionsContainer');
+            const optionNumber = optionsContainer.children.length + 1;
+
+            const newOption = document.createElement('div');
+            newOption.className = 'option';
+            newOption.innerHTML = `
+                <input type="text" class="option-input" placeholder="Option ${optionNumber}" required>
+                <button type="button" class="remove-option" onclick="removeOption(this)">Remove</button>
+            `;
+            optionsContainer.appendChild(newOption);
+        }
+
+        function removeOption(button) {
+            button.parentElement.remove();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Save Resources</title>
+  <link rel="stylesheet" href="resources.css">
+  <style>
+    .contain {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+      margin-top: 100px;  /* Adjusted to make space for the fixed header */
+      width: 100%;
+  }
+  h2 {
+      text-align: center;
+      margin-bottom: 20px;
+  }
+  p {
+      line-height: 1.6;
+  }
+  ul {
+      list-style-type: none;
+      padding: 0;
+  }
+  li {
+      margin-bottom: 10px;
+  }
+  li a {
+      text-decoration: none;
+      color: #007bff;
+  }
+  li a:hover {
+      text-decoration: underline;
+  }
+  #loading {
+      text-align: center;
+      color: #007bff;
+  }
+  #noResources {
+      text-align: center;
+      color: red;
+  }
+  select {
+      padding: 10px;
+      width: 100%;
+      margin-bottom: 20px;
+  }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Civic Accountability Platform</h1>
+    <nav>
+      <a href="/officials">Home</a>
+    </nav>
+  </header>
+  <div class="container">
+    <h2>Save Resources</h2>
+    <form id="resourceForm" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" required></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" name="category" required>
+          <option value="best_practice">Best Practice</option>
+          <option value="outreach_program">Outreach Program</option>
+          <option value="training_material">Training Material</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="resourceFile">Upload File</label>
+        <input type="file" id="resourceFile" name="resourceFile" required>
+      </div>
+      
+      <button type="submit">Save Resource</button>
+    </form>
+    <div id="saving"></div>
+    <div id="responseMessage"></div>
+  </div>
+  <div class="contain">
+    <h2>Resources</h2>
+    <p>Select a category to view the resources.</p>
+
+    <!-- Category selection dropdown -->
+    <select id="categorySelect">
+        <option value="" disabled selected>Select a category</option>
+        <option value="best_practice">Best Practice</option>
+        <option value="outreach_program">Outreach Program</option>
+        <option value="training_material">Training Material</option>
+    </select>
+
+    <!-- Resources list -->
+    <ul id="resourceList"></ul>
+    <div id="loading">Select a category to load resources...</div>
+    <div id="noResources" style="display:none;">No resources found for this category.</div>
+</div>
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const categorySelect = document.getElementById('categorySelect');
+        const resourceList = document.getElementById('resourceList');
+        const loading = document.getElementById('loading');
+        const noResources = document.getElementById('noResources');
+
+        // Event listener for category selection
+        categorySelect.addEventListener('change', async () => {
+            const category = categorySelect.value;
+
+            // Clear previous content
+            resourceList.innerHTML = '';
+            loading.style.display = 'block';
+            noResources.style.display = 'none';
+            loading.textContent = 'Loading resources...';
+
+            try {
+                const response = await fetch(`/resources/${category}`);
+                const data = await response.json();
+                loading.style.display = 'none';
+
+                if (response.ok && data.length > 0) {
+                    // Display the resources in the list
+                    data.forEach(resource => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="/${resource.file_path}" target="_blank">${resource.title}</a> - ${resource.description}`;
+                        resourceList.appendChild(li);
+                    });
+                } else {
+                    noResources.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error fetching resources:', error);
+                loading.textContent = 'Failed to load resources.';
+            }
+        });
+    });
+</script>
+</body>
+</html>

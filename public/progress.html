@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petition Progress</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        canvas { max-width: 100%; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2 id="petitionTitle">Petition Title</h2>
+        <p id="petitionDescription">Petition Description</p>
+
+        <h3>Poll Results</h3>
+        <canvas id="pollChart"></canvas>
+
+        <h3>Signature Progress</h3>
+        <canvas id="signatureChart"></canvas>
+    </div>
+
+    <script>
+        const petitionId = '1'; // Replace with actual petition ID
+
+        async function loadPetitionProgress() {
+            try {
+                // Fetch petition details (title, description, poll options, votes, and signatures count)
+                const response = await fetch(`/petition-progress/${petitionId}`);
+                const petitionData = await response.json();
+
+                document.getElementById('petitionTitle').innerText = petitionData.title;
+                document.getElementById('petitionDescription').innerText = petitionData.description;
+
+                // Poll chart data
+                const pollLabels = petitionData.pollOptions.map(option => option.text);
+                const pollVotes = petitionData.pollOptions.map(option => option.votes);
+
+                const pollChart = new Chart(document.getElementById('pollChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: pollLabels,
+                        datasets: [{
+                            label: 'Votes',
+                            data: pollVotes,
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+
+                // Signature progress chart data
+                const totalSignatures = petitionData.totalSignatures;
+                const signatureGoal = petitionData.signatureGoal;
+
+                const signatureChart = new Chart(document.getElementById('signatureChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Signatures Collected', 'Remaining'],
+                        datasets: [{
+                            data: [totalSignatures, signatureGoal - totalSignatures],
+                            backgroundColor: ['rgba(54, 162, 235, 0.2)', 'rgba(255, 99, 132, 0.2)'],
+                            borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading petition progress:', error);
+            }
+        }
+
+        // Load petition progress when the page loads
+        loadPetitionProgress();
+    </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Petition with Poll</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        label { display: block; margin-top: 10px; }
+        input, textarea { width: 100%; padding: 8px; margin: 5px 0; }
+        .options { margin-bottom: 20px; }
+        .option { display: flex; align-items: center; margin-bottom: 10px; }
+        .option input { flex: 1; padding: 8px; margin-right: 10px; }
+        .remove-option { background: red; color: white; border: none; padding: 5px 10px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Create Petition with Poll</h2>
+        <form id="createPetitionForm">
+            <label for="petitionTitle">Petition Title</label>
+            <input type="text" id="petitionTitle" required>
+            
+            <label for="petitionDescription">Petition Description</label>
+            <textarea id="petitionDescription" rows="5" required></textarea>
+
+            <label>Poll Options</label>
+            <div id="pollOptionsContainer" class="options">
+                <div class="option">
+                    <input type="text" class="option-input" placeholder="Option 1" required>
+                    <button type="button" class="remove-option" onclick="removeOption(this)">Remove</button>
+                </div>
+            </div>
+            <button type="button" onclick="addOption()">Add Option</button>
+            <br><br>
+            <button type="submit">Create Petition</button>
+        </form>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('createPetitionForm');
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById('petitionTitle').value;
+            const description = document.getElementById('petitionDescription').value;
+            const pollOptions = Array.from(document.querySelectorAll('.option-input')).map(input => input.value);
+
+            const petitionData = { title, description, pollOptions };
+
+            try {
+                const response = await fetch('/petitions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(petitionData)
+                });
+
+                const result = await response.json();
+                document.getElementById('responseMessage').innerText = result.message;
+
+                if (response.ok) {
+                    form.reset();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        function addOption() {
+            const optionsContainer = document.getElementById('pollOptionsContainer');
+            const optionNumber = optionsContainer.children.length + 1;
+
+            const newOption = document.createElement('div');
+            newOption.className = 'option';
+            newOption.innerHTML = `
+                <input type="text" class="option-input" placeholder="Option ${optionNumber}" required>
+                <button type="button" class="remove-option" onclick="removeOption(this)">Remove</button>
+            `;
+            optionsContainer.appendChild(newOption);
+        }
+
+        function removeOption(button) {
+            button.parentElement.remove();
+        }
+    </script>
+</body>
+</html>

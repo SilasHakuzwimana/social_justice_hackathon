@@ -19,6 +19,19 @@
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
       border-radius: 8px;
     }
+    header {
+      background: #007bff;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      width: 100%;
+    }
+    nav a {
+        color: white;
+        margin: 0 15px;
+        text-decoration: none;
+        font-weight: bold;
+    }
     h2 {
       text-align: center;
       color: #333;
@@ -62,7 +75,12 @@
   </style>
 </head>
 <body>
-
+  <header>
+    <h1>Civic Accountability Platform</h1>
+    <nav>
+        <a href="/citizens">Home</a>
+    </nav>
+</header>
 <div class="container">
   <h2>Contact Us</h2>
   <form id="contactForm" enctype="multipart/form-data">
@@ -70,7 +88,7 @@
     <input type="text" id="name" name="name" required>
 
     <label for="nationalId">Enter Your Valid National ID Number</label>
-    <input type="number" id="nationalId" name="nationalId" maxlength="16" required>
+    <input type="text" id="nationalId" name="nationalId" maxlength="16" required>
 
     <label for="email">Enter Your Valid Email</label>
     <input type="email" id="email" name="email" required>

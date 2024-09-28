@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote on Poll</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        h2 { margin-bottom: 10px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="pollTitle">Poll Title</h2>
+        <p id="pollQuestion">Poll Question</p>
+
+        <form id="voteForm">
+            <div id="optionsContainer">
+                <!-- Poll options will be loaded here dynamically -->
+            </div>
+            <br>
+            <button type="submit">Submit Vote</button>
+        </form>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        const pollId = '1'; // Assuming you're dynamically setting pollId, replace with actual ID
+        const form = document.getElementById('voteForm');
+
+        async function loadPoll() {
+            try {
+                const response = await fetch(`/polls/${pollId}`);
+                const poll = await response.json();
+
+                document.getElementById('pollTitle').innerText = poll.title;
+                document.getElementById('pollQuestion').innerText = poll.question;
+
+                const optionsContainer = document.getElementById('optionsContainer');
+                poll.options.forEach(option => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.innerHTML = `
+                        <input type="radio" name="option" value="${option.id}" required> ${option.option_text}
+                    `;
+                    optionsContainer.appendChild(optionDiv);
+                });
+            } catch (error) {
+                console.error('Error loading poll:', error);
+            }
+        }
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const selectedOption = document.querySelector('input[name="option"]:checked').value;
+
+            try {
+                const response = await fetch(`/polls/${pollId}/vote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ optionId: selectedOption })
+                });
+
+                const result = await response.json();
+                document.getElementById('responseMessage').innerText = result.message;
+            } catch (error) {
+                console.error('Error submitting vote:', error);
+            }
+        });
+
+        // Load poll when page loads
+        loadPoll();
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Petition</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        h2 { margin-bottom: 10px; }
+        button { padding: 10px 20px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 id="petitionTitle">Petition Title</h2>
+        <p id="petitionDescription">Petition Description</p>
+
+        <button id="signButton">Sign Petition</button>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script>
+        const petitionId = '1'; // Replace with the actual petition ID
+
+        async function loadPetition() {
+            try {
+                const response = await fetch(`/petitions/${petitionId}`);
+                const petition = await response.json();
+
+                document.getElementById('petitionTitle').innerText = petition.title;
+                document.getElementById('petitionDescription').innerText = petition.description;
+            } catch (error) {
+                console.error('Error loading petition:', error);
+            }
+        }
+
+        document.getElementById('signButton').addEventListener('click', async function () {
+            try {
+                const response = await fetch(`/petitions/${petitionId}/sign`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+                document.getElementById('responseMessage').innerText = result.message;
+            } catch (error) {
+                console.error('Error signing petition:', error);
+            }
+        });
+
+        // Load petition when page loads
+        loadPetition();
+    </script>
+</body>
+</html>

@@ -49,6 +49,64 @@
             bottom: 0;
             width: 100%;
         }
+        .community-engagement {
+            background-color: #f9f9f9;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .community-engagement h2 {
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .engagement-options {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        
+        .engagement-option {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px;
+            width: 300px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .engagement-option:hover {
+            transform: scale(1.05);
+        }
+        
+        .engagement-option h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            color: #007bff;
+        }
+        
+        .engagement-option p {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        
+        .learn-more {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        
+        .learn-more:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -56,9 +114,11 @@
 <header>
     <h1>Civic Accountability Platform</h1>
     <nav>
-        <a href="/index">Home</a>
-        <a href="/Government-reports">Government Documents</a>
+        <a href="/citizens">Home</a>
+        <a href="/citizen-reports">Government Documents</a>
         <a href="/citizen-contact">Petition Government</a>
+        <a href="/citizen-updates">Citizen Updates</a>
+        <a href="/citizen-resources">Citizen Resources</a>
         <a href="#" id="logoutLink">Logout</a>
     </nav>
 </header>
@@ -81,12 +141,26 @@
 
     <section class="section">
         <h3>Get Involved</h3>
-        <p>Join us in making a difference in your community:</p>
-        <ul>
-            <li><a href="#">Volunteer Opportunities</a></li>
-            <li><a href="#">Community Events</a></li>
-            <li><a href="#">Feedback and Suggestions</a></li>
-        </ul>
+        <section id="community-engagement" class="community-engagement">
+            <h2>Join Us in Making a Difference in Your Community</h2>
+            <div class="engagement-options">
+                <div class="engagement-option">
+                    <h3>Volunteer Opportunities</h3>
+                    <p>Discover various volunteer opportunities available in your community. Whether you can offer your time, skills, or resources, we have a place for you to contribute and make a positive impact.</p>
+                    <a href="#" class="learn-more">Learn More</a>
+                </div>
+                <div class="engagement-option">
+                    <h3>Community Events</h3>
+                    <p>Participate in our community events designed to foster connection, promote local culture, and address community needs. Join us for workshops, clean-up drives, and social gatherings!</p>
+                    <a href="#" class="learn-more">Learn More</a>
+                </div>
+                <div class="engagement-option">
+                    <h3>Feedback and Suggestions</h3>
+                    <p>Your voice matters! Share your feedback and suggestions to help us improve our community initiatives. We welcome your thoughts and ideas on how we can work together to create a better environment for everyone.</p>
+                    <a href="#" class="learn-more">Learn More</a>
+                </div>
+            </div>
+        </section>
     </section>
 </div>
 
